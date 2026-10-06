@@ -8,3 +8,9 @@ dependencies = [
     "fastapi>=0.142.2",
     "uvicorn[standard]>=0.54.0",
 ]
+
+[dependency-groups]
+dev = [
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+]

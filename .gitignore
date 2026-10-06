@@ -13,3 +13,6 @@ wheels/
 media/
 # Stray venv
 init/
+
+# Secrets (Render API key)
+.env
