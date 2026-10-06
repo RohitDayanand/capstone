@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Fight Night Bettor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  body { padding: 16px; display: flex; flex-direction: column; }
+  .wrap { width: 100%; max-width: 480px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .top { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+  .top .bal { margin-left: auto; background: #fff; color: var(--ink); border-radius: 999px; padding: 8px 14px; box-shadow: var(--shadow); }
+  .logo { font-size: 28px; font-weight: 900; text-align: center; margin: 24px 0 8px; }
+  h2 { margin: 0 0 4px; font-weight: 900; }
+  .center { text-align: center; }
+  .big-wait { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+  .big-wait .emoji { font-size: 64px; }
+  .bettor-card { background: linear-gradient(135deg, #1f1f2e, #3b2a66); color: #fff; border-radius: 16px; padding: 18px; box-shadow: var(--shadow); width: 100%; }
+  .bettor-card .no { font-size: 34px; font-weight: 900; letter-spacing: 2px; }
+  .bettor-card .row { display: flex; justify-content: space-between; margin-top: 14px; font-size: 13px; color: var(--on-dark-muted); font-weight: 700; }
+  .bettor-card .row b { color: #fff; display: block; font-size: 16px; }
+
+  .q { font-size: 22px; font-weight: 900; line-height: 1.2; }
+  .meter { height: 12px; background: rgba(255,255,255,.18); border-radius: 999px; overflow: hidden; }
+  .meter > div { height: 100%; background: linear-gradient(90deg, var(--gold), var(--green)); }
+  .meta { display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; }
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .chips .btn { padding: 10px 6px; }
+  .chips .btn.on { background: #fff; color: var(--ink); }
+  .opts { display: grid; gap: 10px; }
+  .opts .btn { min-height: 76px; font-size: 17px; }
+  .result { border-radius: 16px; padding: 28px 20px; text-align: center; box-shadow: var(--shadow); }
+  .result.win { background: var(--good); }
+  .result.lose { background: var(--bad); }
+  .result.push { background: #555; }
+  .result .amt { font-size: 44px; font-weight: 900; margin: 8px 0; }
+  .lb { font-size: 14px; }
+  .lb div { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid #eee; font-weight: 700; }
+  .lb div.me { color: var(--bg2); font-weight: 900; }
+  .linking { display: flex; align-items: center; gap: 10px; justify-content: center; font-weight: 800; padding: 16px 0; }
+  .spinner { width: 22px; height: 22px; border: 3px solid #ddd; border-top-color: var(--bg2); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script src="/static/common.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const TOKEN_KEY = "fightnight_token";
+const store = {
+  get: () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
+  set: (v) => { try { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); } catch {} },
+};
+let token = store.get();
+let S = null;
+let view = "connecting";
+let stake = 50;
+let linking = false;
+let tLocal = { t: 0, at: performance.now(), playing: false };
+
+const sock = connect("/ws/play", {
+  onOpen: () => sock.send({ type: "hello", token }),
+  onMessage: (m) => {
+    if (m.type === "need_join") { store.set(null); token = null; S = null; view = "join"; render(true); }
+    else if (m.type === "welcome") { token = m.token; store.set(token); }
+    else if (m.type === "kicked") { store.set(null); token = null; S = null; view = "join"; toast("The host removed you."); render(true); }
+    else if (m.type === "error") { linking = false; toast(m.message); render(true); }
+    else if (m.type === "tick") { setClock(m); }
+    else if (m.type === "state") { S = m; setClock(m); linking = false; render(true); }
+  },
+});
+
+function setClock(m) { tLocal = { t: m.t, at: performance.now(), playing: m.playing }; }
+const now = () => tLocal.t + (tLocal.playing ? (performance.now() - tLocal.at) / 1000 : 0);
+
+function current() {
+  // Open bets first, then a fresh result (so it isn't buried by the next locked
+  // market), then whatever is locked, then the last result.
+  const ms = S.markets;
+  const t = now();
+  const settled = ms.filter((m) => m.status === "settled").sort((a, b) => a.reveal_at - b.reveal_at);
+  const fresh = settled.filter((m) => t - m.reveal_at < 20).pop();
+  return ms.find((m) => m.status === "open") || fresh || ms.find((m) => m.status === "locked")
+    || settled.pop() || null;
+}
+
+const app = document.getElementById("app");
+let lastSig = "";
+
+function render(force) {
+  if (view === "join" && !S) return renderJoin();
+  if (!S) { app.innerHTML = '<div class="big-wait"><div class="spinner"></div></div>'; return; }
+  const me = S.me;
+  if (!me.linked) return renderBank();
+  const m = current();
+  const t = now();
+  const sig = [m && m.id, m && m.status, m && m.my_bet && m.my_bet.stake, me.balance, stake,
+               m && m.status === "open" ? Math.floor(t * 4) : 0].join("|");
+  if (!force && sig === lastSig) return;
+  lastSig = sig;
+
+  const head = `<div class="top"><span>#${me.bettor_no} ${esc(me.name)}</span><span class="bal mono">${money(me.balance)}</span></div>`;
+  if (!m) return (app.innerHTML = head + waitingHTML(me));
+  if (m.status === "open" && !m.my_bet) return (app.innerHTML = head + betHTML(m, me, t));
+  if (m.status === "open" || m.status === "locked") return (app.innerHTML = head + placedHTML(m, t));
+
+  // Settled: show my result until the next market opens.
+  const upcoming = S.markets.find((x) => x.status === "upcoming");
+  app.innerHTML = head + resultHTML(m) + leaderboardHTML(me)
+    + (upcoming ? `<p class="center muted">Next bet: <b>${esc(upcoming.question)}</b></p>` : '<p class="center muted">That was the last bet. Check the big screen for final standings.</p>');
+}
+
+function renderJoin() {
+  if (document.getElementById("joinForm")) return;
+  app.innerHTML = `
+    <div class="logo">🥊 Fight Night</div>
+    <form class="card" id="joinForm">
+      <h2>Join the game</h2>
+      <p class="muted" style="margin:0">Enter the PIN from the big screen.</p>
+      <label for="pin">Game PIN</label>
+      <input id="pin" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(params.get("pin") || "")}" required>
+      <label for="name">Nickname</label>
+      <input id="name" maxlength="24" autocomplete="nickname" required>
+      <button class="btn block" style="margin-top:18px;background:var(--ink)">Enter</button>
+    </form>`;
+  document.getElementById(params.get("pin") ? "name" : "pin").focus();
+  document.getElementById("joinForm").onsubmit = (e) => {
+    e.preventDefault();
+    sock.send({ type: "join", pin: document.getElementById("pin").value, name: document.getElementById("name").value });
+  };
+}
+
+function renderBank() {
+  if (document.getElementById("bankForm")) {
+    // Keep what they typed; just flip between the button and the spinner.
+    document.getElementById("linkBtn").classList.toggle("hidden", linking);
+    document.getElementById("linkSpin").classList.toggle("hidden", !linking);
+    return;
+  }
+  const me = S.me;
+  app.innerHTML = `
+    <div class="logo">🥊 Fight Night</div>
+    <div class="bettor-card"><div class="muted" style="font-size:12px;font-weight:800">YOUR BETTOR NUMBER</div>
+      <div class="no mono">#${me.bettor_no}</div><div>${esc(me.name)}</div></div>
+    <form class="card" id="bankForm">
+      <h2>Link a bank</h2>
+      <p class="muted" style="margin:0">Mock accounts only. No real money moves. Any digits work.</p>
+      <label for="bank">Bank</label>
+      <select id="bank">${S.banks.map((b) => `<option>${esc(b)}</option>`).join("")}</select>
+      <label for="routing">Routing number (9 digits)</label>
+      <input id="routing" inputmode="numeric" maxlength="9" placeholder="021000021" required>
+      <label for="acct">Account number</label>
+      <input id="acct" inputmode="numeric" maxlength="17" placeholder="12345678" required>
+      <div class="linking hidden" id="linkSpin"><div class="spinner"></div>Verifying with your bank…</div>
+      <button class="btn block" id="linkBtn" style="margin-top:18px;background:var(--green)">Link account</button>
+      <button type="button" class="btn ghost block" id="fill" style="margin-top:8px;background:#eee;color:var(--ink)">Fill demo numbers</button>
+    </form>`;
+  document.getElementById("fill").onclick = () => {
+    document.getElementById("routing").value = "0" + String(Math.floor(1e7 + Math.random() * 9e7));
+    document.getElementById("acct").value = String(Math.floor(1e9 + Math.random() * 9e9));
+  };
+  document.getElementById("bankForm").onsubmit = (e) => {
+    e.preventDefault();
+    linking = true;
+    const msg = { type: "link_bank", bank: document.getElementById("bank").value,
+      routing: document.getElementById("routing").value, account: document.getElementById("acct").value };
+    renderBank();
+    setTimeout(() => sock.send(msg), 900); // a beat of fake "verification"
+  };
+}
+
+function waitingHTML(me) {
+  const next = S.markets.find((m) => m.status === "upcoming");
+  return `
+    <div class="bettor-card">
+      <div class="muted" style="font-size:12px;font-weight:800">BETTOR</div>
+      <div class="no mono">#${me.bettor_no}</div><div>${esc(me.name)}</div>
+      <div class="row"><span>Linked bank<b>${esc(me.bank)} ••${esc(me.account_last4)}</b></span><span style="text-align:right">Balance<b class="mono">${money(me.balance)}</b></span></div>
+    </div>
+    <div class="big-wait"><div class="emoji">📺</div><h2>Eyes on the big screen</h2>
+      <p class="muted" style="margin:0">${next ? "Betting opens soon." : ""} Bet early: the sooner you lock in a correct call, the bigger your cut of the pot.</p></div>`;
+}
+
+function betHTML(m, me, t) {
+  const left = Math.max(0, m.lock_at - t);
+  const span = m.lock_at - m.open_at;
+  const w = weightNow(m, t, S.early_bonus);
+  const chips = [10, 50, 100, "All"].map((v) => {
+    const val = v === "All" ? me.balance : v;
+    const on = Math.abs(stake - val) < 0.001 ? "on" : "";
+    return `<button class="btn ghost ${on}" data-stake="${val}" ${val > me.balance || val < S.min_stake ? "disabled" : ""}>${v === "All" ? "All in" : "$" + v}</button>`;
+  }).join("");
+  return `
+    <div class="q">${esc(m.question)}</div>
+    <div>
+      <div class="meta"><span>Early weight <span class="mono">${w.toFixed(2)}×</span></span><span class="mono">${Math.ceil(left)}s left</span></div>
+      <div class="meter" style="margin-top:6px"><div style="width:${(left / span) * 100}%"></div></div>
+    </div>
+    <div>
+      <div class="meta" style="margin-bottom:8px"><span>Stake</span><span class="mono">${money(Math.min(stake, me.balance))}</span></div>
+      <div class="chips">${chips}</div>
+    </div>
+    <div class="opts">${m.options.map((o, i) =>
+      `<button class="btn opt opt-${i % 4}" data-opt="${i}"><span class="shape">${SHAPES[i % 4]}</span><span>${esc(o)}</span></button>`).join("")}</div>
+    <p class="center muted" style="margin:0;font-size:13px">Pot so far ${money(m.pot)} from ${m.n_bets} bettor${m.n_bets === 1 ? "" : "s"}</p>`;
+}
+
+function placedHTML(m, t) {
+  const b = m.my_bet;
+  if (!b) return `<div class="big-wait"><div class="emoji">🔒</div><h2>Betting closed</h2><p class="muted">You sat this one out. Next one soon.</p></div>`;
+  const locked = m.status === "locked";
+  return `
+    <div class="big-wait">
+      <div class="emoji">${locked ? "🔒" : "✅"}</div>
+      <h2>${locked ? "Locked in. Watch!" : "Bet placed"}</h2>
+      <div class="btn opt opt-${b.option % 4}" style="cursor:default"><span class="shape">${SHAPES[b.option % 4]}</span><span>${esc(m.options[b.option])}</span></div>
+      <p style="font-weight:800;margin:4px 0">${money(b.stake)} at ${(1 + S.early_bonus * b.earliness).toFixed(2)}× early weight</p>
+      <p class="muted" style="margin:0">${locked ? `Pot ${money(m.pot)}. The answer drops on screen.` : `Locks in ${Math.ceil(Math.max(0, m.lock_at - t))}s`}</p>
+    </div>`;
+}
+
+function resultHTML(m) {
+  const b = m.my_bet;
+  if (!b) return `<div class="result push"><h2>${esc(m.options[m.answer])}</h2><p style="margin:6px 0 0">You didn't bet on this one.</p></div>`;
+  const net = b.payout - b.stake;
+  const won = b.option === m.answer;
+  const cls = won ? "win" : net === 0 ? "push" : "lose";
+  const head = won ? "Correct!" : net === 0 ? "Refunded" : "Not this time";
+  return `<div class="result ${cls}"><h2>${head}</h2>
+    <div class="amt mono">${net >= 0 ? "+" : "−"}${money(Math.abs(net))}</div>
+    <div style="font-weight:700">${esc(m.reveal_text)}</div></div>`;
+}
+
+function leaderboardHTML(me) {
+  const lb = S.leaderboard;
+  const rank = lb.findIndex((p) => p.id === me.id) + 1;
+  return `<div class="card lb"><div style="display:flex;justify-content:space-between;font-weight:900;margin-bottom:6px"><span>Leaderboard</span><span>You're #${rank || "?"}</span></div>
+    ${lb.slice(0, 5).map((p, i) => `<div class="${p.id === me.id ? "me" : ""}"><span>${i + 1}. ${esc(p.name)}</span><span class="mono">${money(p.balance)}</span></div>`).join("")}</div>`;
+}
+
+app.addEventListener("click", (e) => {
+  const s = e.target.closest("[data-stake]");
+  if (s) { stake = Number(s.dataset.stake); return render(true); }
+  const o = e.target.closest("[data-opt]");
+  if (o) {
+    const m = current();
+    sock.send({ type: "bet", market: m.id, option: Number(o.dataset.opt), stake: Math.min(stake, S.me.balance) });
+    o.disabled = true;
+  }
+});
+
+setInterval(() => S && render(false), 250);
+</script>
+</body>
+</html>

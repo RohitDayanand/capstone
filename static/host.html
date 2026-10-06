@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fight Night Host</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  body { padding: 18px; }
+  header { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; flex-wrap: wrap; }
+  .pin { background: #fff; color: var(--ink); border-radius: var(--radius); padding: 10px 18px; box-shadow: var(--shadow); }
+  .pin small { display: block; font-weight: 700; color: var(--muted); font-size: 12px; }
+  .pin b { font-size: 40px; font-weight: 900; letter-spacing: 3px; }
+  .join { display: flex; align-items: center; gap: 12px; }
+  #qr { background: #fff; padding: 6px; border-radius: 8px; line-height: 0; }
+  #qr img, #qr canvas { width: 92px; height: 92px; }
+  .join-url { font-weight: 800; font-size: 18px; word-break: break-all; max-width: 360px; }
+  .spacer { flex: 1; }
+  .count { font-size: 15px; font-weight: 800; background: rgba(0,0,0,.25); padding: 10px 14px; border-radius: 10px; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 18px; }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+  .stage video { width: 100%; border-radius: var(--radius); background: #000; display: block; box-shadow: var(--shadow); max-height: 66vh; aspect-ratio: 4 / 3; object-fit: contain; }
+  .credit { font-size: 12px; margin-top: 8px; }
+
+  .timeline { position: relative; height: 36px; margin-top: 14px; background: rgba(0,0,0,.25); border-radius: 8px; overflow: hidden; cursor: pointer; }
+  .seg { position: absolute; top: 6px; bottom: 6px; border-radius: 4px; }
+  .seg.open { background: var(--green); }
+  .seg.wait { background: var(--gold); opacity: .8; }
+  .seg.done { filter: grayscale(.8) brightness(.7); }
+  .playhead { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; box-shadow: 0 0 6px #fff; }
+  .legend { display: flex; gap: 16px; font-size: 12px; margin-top: 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  .side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .phase { font-size: 12px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; }
+  .phase.open { color: var(--green); }
+  .phase.locked { color: var(--yellow); }
+  .phase.settled { color: var(--blue); }
+  .q { font-size: 24px; font-weight: 900; margin: 6px 0 14px; line-height: 1.2; }
+  .clock { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+  .clock b { font-size: 46px; font-weight: 900; }
+  .bonus { margin-left: auto; text-align: right; }
+  .bonus b { font-size: 26px; color: var(--green); }
+  .bars { display: flex; flex-direction: column; gap: 8px; }
+  .bar { border-radius: 10px; padding: 12px; font-weight: 800; }
+  .bar .row { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+  .bar .n { margin-left: auto; font-size: 20px; }
+  .bar.dim { opacity: .35; }
+  .bar.win { outline: 4px solid var(--gold); }
+  .pot { display: flex; justify-content: space-between; margin-top: 12px; font-weight: 800; }
+  .reveal { font-weight: 800; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { padding: 6px 4px; text-align: left; }
+  th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  td.r, th.r { text-align: right; }
+  tr + tr td { border-top: 1px solid #eee; }
+  .up { color: var(--good); font-weight: 800; }
+  .down { color: var(--bad); font-weight: 800; }
+
+  .players { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: rgba(255,255,255,.14); border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 14px; }
+  .chip.off { opacity: .45; }
+  .chip.unlinked { border: 2px dashed rgba(255,255,255,.4); }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(20, 6, 45, .92); display: grid; place-items: center; z-index: 20; padding: 16px; }
+  .podium { width: min(720px, 100%); }
+  .podium h2 { font-size: 40px; text-align: center; margin: 0 0 20px; font-weight: 900; }
+  .lb-row { display: flex; align-items: center; gap: 14px; background: #fff; color: var(--ink); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; font-weight: 800; font-size: 20px; box-shadow: var(--shadow); }
+  .lb-row .rank { width: 36px; font-size: 26px; font-weight: 900; }
+  .lb-row .bal { margin-left: auto; }
+  .lb-row:first-child { background: var(--gold); }
+</style>
+</head>
+<body>
+<header>
+  <div class="pin"><small>Game PIN</small><b id="pin" class="mono">------</b></div>
+  <div class="join">
+    <div id="qr" class="hidden"></div>
+    <div>
+      <div class="muted" style="font-weight:700;font-size:13px">Join on your phone</div>
+      <div class="join-url" id="joinUrl">…</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="count"><span id="nPlayers">0</span> bettors</div>
+</header>
+
+<main>
+  <section class="stage">
+    <video id="video" controls preload="auto" playsinline></video>
+    <div class="timeline" id="timeline"><div class="playhead" id="playhead"></div></div>
+    <div class="legend muted">
+      <span><i style="background:var(--green)"></i>betting open</span>
+      <span><i style="background:var(--gold)"></i>locked, waiting for the moment</span>
+      <span>Click the strip to seek</span>
+    </div>
+    <div class="credit muted" id="credit"></div>
+  </section>
+
+  <aside class="side">
+    <div class="card" id="marketCard"></div>
+    <div>
+      <div class="phase" style="color:var(--on-dark-muted);margin-bottom:8px">In the room</div>
+      <div class="players" id="players"><span class="muted">Waiting for players. Share the PIN.</span></div>
+    </div>
+    <div class="controls">
+      <button class="btn ghost" id="lbBtn">Leaderboard</button>
+      <button class="btn ghost" id="resetBtn">Restart round</button>
+    </div>
+  </aside>
+</main>
+
+<div class="overlay hidden" id="overlay">
+  <div class="podium">
+    <h2 id="lbTitle">Leaderboard</h2>
+    <div id="lbRows"></div>
+    <div style="text-align:center;margin-top:16px"><button class="btn ghost" id="lbClose">Back to the fight</button></div>
+  </div>
+</div>
+
+<script src="/static/common.js"></script>
+<script>
+const key = new URLSearchParams(location.search).get("key") || "";
+const video = document.getElementById("video");
+let S = null;               // latest server state
+let lastQrUrl = null;
+let finalShown = false;
+
+const sock = connect(`/ws/host?key=${encodeURIComponent(key)}`, {
+  onOpen: () => sendClock(true),
+  onMessage: (m) => {
+    if (m.type === "error") return toast(m.message, 6000);
+    if (m.type === "state") { S = m; render(); }
+  },
+});
+
+// The host video is the game clock.
+function sendClock(seek = false) {
+  // Only count as playing when frames are actually rendering, not while buffering.
+  const playing = !video.paused && !video.ended && video.readyState >= 3;
+  sock.send({ type: "clock", t: video.currentTime || 0, playing, seek });
+}
+["play", "playing", "pause", "waiting", "stalled", "ended", "ratechange"].forEach((e) => video.addEventListener(e, () => sendClock()));
+video.addEventListener("seeked", () => sendClock(true));
+setInterval(() => sendClock(), 500);
+
+document.getElementById("timeline").addEventListener("click", (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  if (video.duration) video.currentTime = ((e.clientX - r.left) / r.width) * video.duration;
+});
+document.getElementById("resetBtn").onclick = () => {
+  video.pause();
+  video.currentTime = 0;
+  finalShown = false;
+  sock.send({ type: "reset" });
+  setTimeout(() => sendClock(true), 100);
+};
+document.getElementById("lbBtn").onclick = () => showLeaderboard("Leaderboard");
+document.getElementById("lbClose").onclick = () => document.getElementById("overlay").classList.add("hidden");
+
+function render() {
+  if (!video.src) {
+    video.src = S.game.video_url;
+    document.getElementById("credit").textContent = S.game.title + ". " + S.game.video_credit;
+  }
+  document.getElementById("pin").textContent = S.pin;
+  const url = S.join_url || `${location.origin}/play?pin=${S.pin}`;
+  document.getElementById("joinUrl").textContent = url.replace(/^https?:\/\//, "");
+  if (url !== lastQrUrl) {
+    lastQrUrl = url;
+    const qr = document.getElementById("qr");
+    qr.innerHTML = "";
+    new QRCode(qr, { text: url, width: 184, height: 184 });
+    qr.classList.remove("hidden");
+  }
+
+  const linked = S.players.filter((p) => p.linked).length;
+  document.getElementById("nPlayers").textContent = linked;
+  document.getElementById("players").innerHTML = S.players.length
+    ? S.players.map((p) =>
+        `<span class="chip ${p.online ? "" : "off"} ${p.linked ? "" : "unlinked"}" title="${p.linked ? esc(p.bank) + " ••" + esc(p.account_last4) : "No bank linked yet"}">#${p.bettor_no} ${esc(p.name)}</span>`
+      ).join("")
+    : '<span class="muted">Waiting for players. Share the PIN.</span>';
+
+  if (!finalShown && S.markets.every((m) => m.status === "settled") && S.markets.length) {
+    finalShown = true;
+    setTimeout(() => showLeaderboard("Final standings"), 2500);
+  }
+  if (document.getElementById("overlay").classList.contains("hidden") === false) fillLeaderboard();
+}
+
+// Pick what the side card should focus on right now.
+function focusMarket(t) {
+  // Open bets first, then a fresh result, then whatever is locked or next up.
+  const ms = S.markets;
+  const settled = ms.filter((m) => m.status === "settled").sort((a, b) => a.reveal_at - b.reveal_at);
+  return ms.find((m) => m.status === "open")
+    || settled.filter((m) => t - m.reveal_at < 15).pop()
+    || ms.find((m) => m.status === "locked")
+    || ms.find((m) => m.status === "upcoming")
+    || settled.pop();
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  if (!S) return;
+  const t = video.currentTime || 0;
+  const dur = video.duration || Math.max(...S.markets.map((m) => m.reveal_at)) + 10;
+
+  // timeline
+  const tl = document.getElementById("timeline");
+  if (tl.dataset.built !== String(dur) + S.markets.map((m) => m.status).join()) {
+    tl.dataset.built = String(dur) + S.markets.map((m) => m.status).join();
+    tl.querySelectorAll(".seg").forEach((s) => s.remove());
+    for (const m of S.markets) {
+      const done = m.status === "settled" ? " done" : "";
+      tl.insertAdjacentHTML("afterbegin",
+        `<div class="seg open${done}" style="left:${(m.open_at / dur) * 100}%;width:${((m.lock_at - m.open_at) / dur) * 100}%"></div>` +
+        `<div class="seg wait${done}" style="left:${(m.lock_at / dur) * 100}%;width:${((m.reveal_at - m.lock_at) / dur) * 100}%"></div>`);
+    }
+  }
+  document.getElementById("playhead").style.left = `${(t / dur) * 100}%`;
+
+  const m = focusMarket(t);
+  const card = document.getElementById("marketCard");
+  const sig = m ? [m.id, m.status, m.n_bets, (m.counts || []).join(), Math.floor(t * 4)].join("|") : "none";
+  if (card.dataset.sig === sig) return;
+  card.dataset.sig = sig;
+  card.innerHTML = m ? marketHTML(m, t) : '<div class="q">No markets configured.</div>';
+}
+requestAnimationFrame(frame);
+
+function marketHTML(m, t) {
+  const counts = m.counts || m.options.map(() => 0);
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  const bars = m.options.map((o, i) => {
+    const cls = m.status === "settled" ? (i === m.answer ? "win" : "dim") : "";
+    const pct = Math.round((counts[i] / total) * 100);
+    return `<div class="bar opt opt-${i % 4} ${cls}" style="background-image:linear-gradient(90deg, rgba(255,255,255,.22) ${pct}%, transparent ${pct}%)">
+      <div class="row"><span class="shape">${SHAPES[i % 4]}</span><span>${esc(o)}</span><span class="n mono">${counts[i]}</span></div></div>`;
+  }).join("");
+
+  if (m.status === "upcoming") {
+    return `<div class="phase muted">Up next</div><div class="q">${esc(m.question)}</div>
+      <div class="clock"><b class="mono">${fmtTime(m.open_at - t)}</b><span class="muted">until betting opens</span></div>
+      <div class="bars">${bars}</div>`;
+  }
+  if (m.status === "open") {
+    const w = weightNow(m, t, S.early_bonus);
+    return `<div class="phase open">Betting open</div><div class="q">${esc(m.question)}</div>
+      <div class="clock"><b class="mono">${Math.max(0, Math.ceil(m.lock_at - t))}s</b><span class="muted">to lock</span>
+        <div class="bonus"><div class="muted" style="font-size:12px;font-weight:700">Early weight now</div><b class="mono">${w.toFixed(2)}×</b></div></div>
+      <div class="bars">${bars}</div>
+      <div class="pot"><span>${m.n_bets} bets</span><span>Pot ${money(m.pot)}</span></div>`;
+  }
+  if (m.status === "locked") {
+    return `<div class="phase locked">Locked. Keep watching</div><div class="q">${esc(m.question)}</div>
+      <div class="clock"><b class="mono">${m.n_bets}</b><span class="muted">bets riding on it</span></div>
+      <div class="bars">${bars}</div>
+      <div class="pot"><span></span><span>Pot ${money(m.pot)}</span></div>`;
+  }
+  const rows = (m.results || []).slice(0, 6).map((r) => {
+    const d = r.payout - r.stake;
+    return `<tr><td>#${r.bettor_no} ${esc(r.name)}</td><td class="r mono">${Math.round(r.earliness * 100)}%</td><td class="r mono">${money(r.stake)}</td>
+      <td class="r mono ${d >= 0 ? "up" : "down"}">${d >= 0 ? "+" : "−"}${money(Math.abs(d))}</td></tr>`;
+  }).join("");
+  return `<div class="phase settled">Result</div><div class="q">${esc(m.question)}</div>
+    <p class="reveal">${esc(m.reveal_text)}</p>
+    <div class="bars">${bars}</div>
+    ${rows ? `<table style="margin-top:14px"><tr><th>Bettor</th><th class="r">Early</th><th class="r">Stake</th><th class="r">Net</th></tr>${rows}</table>`
+           : '<p class="muted">Nobody bet on this one.</p>'}`;
+}
+
+function showLeaderboard(title) {
+  document.getElementById("lbTitle").textContent = title;
+  fillLeaderboard();
+  document.getElementById("overlay").classList.remove("hidden");
+}
+function fillLeaderboard() {
+  const start = S.game.starting_balance;
+  document.getElementById("lbRows").innerHTML = S.leaderboard.slice(0, 8).map((p, i) => {
+    const d = p.balance - start;
+    return `<div class="lb-row"><span class="rank">${i + 1}</span><span>#${p.bettor_no} ${esc(p.name)}</span>
+      <span class="bal mono">${money(p.balance)} <small class="${d >= 0 ? "up" : "down"}">(${d >= 0 ? "+" : "−"}${money(Math.abs(d))})</small></span></div>`;
+  }).join("") || '<p class="muted" style="text-align:center">No bettors yet.</p>';
+}
+</script>
+</body>
+</html>

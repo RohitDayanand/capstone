@@ -1,0 +1,48 @@
+{
+  "title": "Van Klaveren vs Sybille — European Lightweight Title, Rotterdam 1931",
+  "video_url": "https://upload.wikimedia.org/wikipedia/commons/0/07/Bokswedstrijd.webm",
+  "video_credit": "Polygoon Hollands Nieuws, week 21 1931 — public domain, via Wikimedia Commons (File:Bokswedstrijd.webm)",
+  "starting_balance": 1000,
+  "markets": [
+    {
+      "id": "winner",
+      "question": "Who wins the title fight?",
+      "options": ["Dark trunks — Bep van Klaveren (NED)", "Light trunks — François Sybille (BEL)"],
+      "answer": 0,
+      "open_at": 4,
+      "lock_at": 100,
+      "reveal_at": 124.5,
+      "reveal_text": "Dark trunks raises his arms. Van Klaveren is European champion!"
+    },
+    {
+      "id": "storm",
+      "question": "Does the crowd storm the ring after the fight?",
+      "options": ["Yes, they flood in", "No, everyone stays seated"],
+      "answer": 0,
+      "open_at": 106,
+      "lock_at": 123,
+      "reveal_at": 130,
+      "reveal_text": "Hats in the air. Officials and fans pack the ring."
+    },
+    {
+      "id": "canvas",
+      "question": "Replay incoming: will we see a fighter hit the canvas?",
+      "options": ["Yes, a knockdown", "No, it stays on their feet"],
+      "answer": 0,
+      "open_at": 131,
+      "lock_at": 150,
+      "reveal_at": 155,
+      "reveal_text": "Down he goes. Light trunks hits the canvas and the referee starts counting."
+    },
+    {
+      "id": "wave",
+      "question": "Closing shot: does the champion wave to the camera?",
+      "options": ["Yes, he waves", "No, he just stands there"],
+      "answer": 0,
+      "open_at": 236,
+      "lock_at": 264,
+      "reveal_at": 279,
+      "reveal_text": "A wave for the newsreel cameras."
+    }
+  ]
+}
