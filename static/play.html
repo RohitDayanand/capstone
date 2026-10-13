@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Fight Night Bettor</title>
+<title>NBC Fight Night Bettor</title>
+<link rel="icon" href="/static/nbc-peacock.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
@@ -17,7 +18,8 @@
   .center { text-align: center; }
   .big-wait { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
   .big-wait .emoji { font-size: 64px; }
-  .bettor-card { background: linear-gradient(135deg, #1f1f2e, #3b2a66); color: #fff; border-radius: 16px; padding: 18px; box-shadow: var(--shadow); width: 100%; }
+  .bettor-card { position: relative; overflow: hidden; background: linear-gradient(135deg, #12141f, #1b2a4a); color: #fff; border-radius: 16px; padding: 18px; box-shadow: var(--shadow); width: 100%; }
+  .bettor-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--peacock); }
   .bettor-card .no { font-size: 34px; font-weight: 900; letter-spacing: 2px; }
   .bettor-card .row { display: flex; justify-content: space-between; margin-top: 14px; font-size: 13px; color: var(--on-dark-muted); font-weight: 700; }
   .bettor-card .row b { color: #fff; display: block; font-size: 16px; }
@@ -38,9 +40,9 @@
   .result .amt { font-size: 44px; font-weight: 900; margin: 8px 0; }
   .lb { font-size: 14px; }
   .lb div { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid #eee; font-weight: 700; }
-  .lb div.me { color: var(--bg2); font-weight: 900; }
+  .lb div.me { color: var(--accent); font-weight: 900; }
   .linking { display: flex; align-items: center; gap: 10px; justify-content: center; font-weight: 800; padding: 16px 0; }
-  .spinner { width: 22px; height: 22px; border: 3px solid #ddd; border-top-color: var(--bg2); border-radius: 50%; animation: spin .8s linear infinite; }
+  .spinner { width: 22px; height: 22px; border: 3px solid #ddd; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
@@ -117,7 +119,7 @@ function render(force) {
 function renderJoin() {
   if (document.getElementById("joinForm")) return;
   app.innerHTML = `
-    <div class="logo">🥊 Fight Night</div>
+    <div class="logo"><span class="brand"><img src="/static/nbc-peacock.svg" alt=""><span class="nbc">NBC</span><span class="sep"></span><span>Fight Night</span></span></div>
     <form class="card" id="joinForm">
       <h2>Join the game</h2>
       <p class="muted" style="margin:0">Enter the PIN from the big screen.</p>
@@ -125,7 +127,7 @@ function renderJoin() {
       <input id="pin" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(params.get("pin") || "")}" required>
       <label for="name">Nickname</label>
       <input id="name" maxlength="24" autocomplete="nickname" required>
-      <button class="btn block" style="margin-top:18px;background:var(--ink)">Enter</button>
+      <button class="btn block" style="margin-top:18px;background:var(--accent)">Enter</button>
     </form>`;
   document.getElementById(params.get("pin") ? "name" : "pin").focus();
   document.getElementById("joinForm").onsubmit = (e) => {
@@ -143,7 +145,7 @@ function renderBank() {
   }
   const me = S.me;
   app.innerHTML = `
-    <div class="logo">🥊 Fight Night</div>
+    <div class="logo"><span class="brand"><img src="/static/nbc-peacock.svg" alt=""><span class="nbc">NBC</span><span class="sep"></span><span>Fight Night</span></span></div>
     <div class="bettor-card"><div class="muted" style="font-size:12px;font-weight:800">YOUR BETTOR NUMBER</div>
       <div class="no mono">#${me.bettor_no}</div><div>${esc(me.name)}</div></div>
     <form class="card" id="bankForm">

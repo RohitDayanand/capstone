@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fight Night Host</title>
+<title>NBC Fight Night Host</title>
+<link rel="icon" href="/static/nbc-peacock.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
@@ -67,7 +68,7 @@
   .chip.unlinked { border: 2px dashed rgba(255,255,255,.4); }
   .controls { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .overlay { position: fixed; inset: 0; background: rgba(20, 6, 45, .92); display: grid; place-items: center; z-index: 20; padding: 16px; }
+  .overlay { position: fixed; inset: 0; background: rgba(7, 8, 15, .94); display: grid; place-items: center; z-index: 20; padding: 16px; }
   .podium { width: min(720px, 100%); }
   .podium h2 { font-size: 40px; text-align: center; margin: 0 0 20px; font-weight: 900; }
   .lb-row { display: flex; align-items: center; gap: 14px; background: #fff; color: var(--ink); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; font-weight: 800; font-size: 20px; box-shadow: var(--shadow); }
@@ -78,6 +79,7 @@
 </head>
 <body>
 <header>
+  <div class="brand" style="font-size:22px"><img src="/static/nbc-peacock.svg" alt="NBC" style="height:52px"><span class="nbc">NBC</span><span class="sep"></span><span>Fight Night</span></div>
   <div class="pin"><small>Game PIN</small><b id="pin" class="mono">------</b></div>
   <div class="join">
     <div id="qr" class="hidden"></div>

@@ -1,18 +1,28 @@
 :root {
-  --bg: #2b0f5c;
-  --bg2: #46178f;
+  /* NBC peacock palette */
+  --nbc-yellow: #fcb711;
+  --nbc-orange: #f37021;
+  --nbc-red: #cc004c;
+  --nbc-purple: #6460aa;
+  --nbc-blue: #0089d0;
+  --nbc-green: #0db14b;
+
+  --bg: #07080f;
+  --bg2: #1a1d33;
   --panel: #ffffff;
-  --ink: #1d1033;
-  --muted: #6b5f80;
+  --ink: #0d0f1a;
+  --muted: #5d6275;
   --on-dark: #ffffff;
-  --on-dark-muted: #cbbcec;
-  --red: #e21b3c;
-  --blue: #1368ce;
-  --yellow: #d89e00;
-  --green: #26890c;
-  --gold: #ffc23d;
-  --good: #26890c;
-  --bad: #e21b3c;
+  --on-dark-muted: #a9adc2;
+  --red: var(--nbc-red);
+  --blue: var(--nbc-blue);
+  --yellow: #d99a00;
+  --green: var(--nbc-green);
+  --gold: var(--nbc-yellow);
+  --good: var(--nbc-green);
+  --bad: var(--nbc-red);
+  --accent: var(--nbc-blue);
+  --peacock: linear-gradient(90deg, var(--nbc-yellow), var(--nbc-orange), var(--nbc-red), var(--nbc-purple), var(--nbc-blue), var(--nbc-green));
   --radius: 14px;
   --shadow: 0 6px 0 rgba(0, 0, 0, 0.25);
 }
@@ -26,6 +36,8 @@ body {
   color: var(--on-dark);
   min-height: 100vh;
   min-height: 100dvh;
+  border-top: 5px solid transparent;
+  border-image: var(--peacock) 1;
 }
 button, input, select { font: inherit; }
 .hidden { display: none !important; }
@@ -59,14 +71,14 @@ button, input, select { font: inherit; }
 
 input, select {
   width: 100%;
-  border: 2px solid #d6cfe2;
+  border: 2px solid #d3d6e0;
   border-radius: 8px;
   padding: 12px 14px;
   font-weight: 700;
   color: var(--ink);
   background: #fff;
 }
-input:focus, select:focus { outline: none; border-color: var(--bg2); }
+input:focus, select:focus { outline: none; border-color: var(--accent); }
 label { display: block; font-weight: 700; font-size: 13px; margin: 12px 0 6px; color: var(--muted); }
 
 /* Answer tiles, Kahoot-style: one color + shape per option */
@@ -90,3 +102,9 @@ label { display: block; font-weight: 700; font-size: 13px; margin: 12px 0 6px; c
   z-index: 50;
   max-width: calc(100% - 32px);
 }
+
+/* NBC brand lockup */
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: .5px; }
+.brand img { height: 1.6em; width: auto; display: block; }
+.brand .nbc { font-size: 1.15em; letter-spacing: 1px; }
+.brand .sep { width: 2px; align-self: stretch; background: currentColor; opacity: .3; }

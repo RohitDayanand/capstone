@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-16 12 132 76" role="img" aria-label="NBC">
+  <!-- Stylized six-feather peacock. Swap for the official asset from the NBC brand kit. -->
+  <g stroke="#fff" stroke-width="2.5">
+    <ellipse cx="50" cy="44" rx="10.5" ry="28" fill="#FCB711" transform="rotate(-72 50 74)"/>
+    <ellipse cx="50" cy="44" rx="10.5" ry="28" fill="#F37021" transform="rotate(-43 50 74)"/>
+    <ellipse cx="50" cy="44" rx="10.5" ry="28" fill="#CC004C" transform="rotate(-14 50 74)"/>
+    <ellipse cx="50" cy="44" rx="10.5" ry="28" fill="#6460AA" transform="rotate(14 50 74)"/>
+    <ellipse cx="50" cy="44" rx="10.5" ry="28" fill="#0089D0" transform="rotate(43 50 74)"/>
+    <ellipse cx="50" cy="44" rx="10.5" ry="28" fill="#0DB14B" transform="rotate(72 50 74)"/>
+  </g>
+  <path d="M50 46c-5 0-8 5-8 11v19h16V57c0-6-3-11-8-11z" fill="#fff"/>
+</svg>
